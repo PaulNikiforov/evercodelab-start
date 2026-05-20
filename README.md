@@ -7,11 +7,20 @@
 ```
 src/
 ├── config/
-│   └── config.js     — конфигурация приложения (appName, env)
+│   └── config.js          — конфигурация приложения (appName, env)
+├── errors/
+│   ├── AppError.js         — базовый класс ошибки (statusCode, timestamp, context)
+│   ├── ValidationError.js  — ошибка валидации аргументов (400)
+│   └── TaskExecutionError.js — ошибка выполнения задачи (500)
 ├── logger/
-│   └── logger.js     — модуль логирования с уровнями info/error
-└── scheduler/
-    └── scheduler.js  — планировщик периодических задач
+│   └── logger.js           — логирование с уровнями error/warn/info/debug/trace и requestId
+├── scheduler/
+│   └── scheduler.js        — планировщик периодических задач
+└── utils/
+    └── validateTaskParams.js — валидация аргументов функции scheduleTask
+
+__tests__/
+└── app.test.js             — автотесты (Jest)
 ```
 
 ## Задания
@@ -25,17 +34,19 @@ src/
 ### NPM
 
 - Проект проинициализирован через `npm init`.
+- Jest установлен как devDependency.
 
 ### Модули
 
 1. **config.js** — хранит `appName` и настройки проекта (среда выполнения, флаг разработки).
-2. **logger.js** — инкапсулирует `console.log`/`console.error`, возвращает объект-логгер с методами `info` и `error`, форматирующий сообщения с названием приложения и временной меткой.
+2. **logger.js** — фабрика `createLogger({ requestId })`, возвращает логгер с методами `error`, `warn`, `info`, `debug`, `trace`. Формат: `[время] [УРОВЕНЬ] [appName] [requestId] сообщение`.
+3. **errors/** — кастомные классы ошибок, наследующие от `Error` через базовый `AppError`.
 
 ### Event Loop
 
 1. **scheduler.js** — содержит:
    - Инициализирующий скрипт, который синхронно логирует факт запуска.
-   - Функцию `scheduleTask(name, interval, task)` для управления периодическими задачами с валидацией аргументов.
+   - Функцию `scheduleTask(name, interval, task)` для управления периодическими задачами. Валидация аргументов вынесена в отдельный модуль (SoC).
 2. Зарегистрирована задача `heartbeat` — каждые 10 секунд логирует слово `running`.
 
 ## Установка и запуск
@@ -43,6 +54,12 @@ src/
 ```bash
 npm install
 node src/scheduler/scheduler.js
+```
+
+## Тесты
+
+```bash
+npm test
 ```
 
 ## Автор
