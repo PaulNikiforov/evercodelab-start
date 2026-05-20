@@ -1,6 +1,10 @@
 node_modules/
 .idea/
 *.txt
+*.md
+!README.md
+!readme.md
+!Readme.md
 
 plans/
 .DS_Store
