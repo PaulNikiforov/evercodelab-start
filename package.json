@@ -4,7 +4,7 @@
   "description": "An introduction to development with Node.js",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/PaulNikiforov/evercodelab-start/issues"
   },
-  "homepage": "https://github.com/PaulNikiforov/evercodelab-start#readme"
+  "homepage": "https://github.com/PaulNikiforov/evercodelab-start#readme",
+  "devDependencies": {
+    "jest": "^30.4.2"
+  }
 }
