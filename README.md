@@ -41,6 +41,7 @@ __tests__/
 1. **config.js** — хранит `appName` и настройки проекта (среда выполнения, флаг разработки).
 2. **logger.js** — фабрика `createLogger({ requestId })`, возвращает логгер с методами `error`, `warn`, `info`, `debug`, `trace`. Формат: `[время] [УРОВЕНЬ] [appName] [requestId] сообщение`.
 3. **errors/** — кастомные классы ошибок, наследующие от `Error` через базовый `AppError`.
+4. **validateTaskParams.js** — вынесенная из scheduler валидация аргументов функции `scheduleTask`.
 
 ### Event Loop
 
