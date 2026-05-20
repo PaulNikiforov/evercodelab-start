@@ -1,5 +1,6 @@
-const createLogger = require('../utils/logger');
+const createLogger = require('../logger/logger');
 const config = require('../config/config');
+const validateTaskParams = require('../utils/validateTaskParams');
 
 const HEARTBEAT_TASK_NAME = 'heartbeat';
 const HEARTBEAT_INTERVAL_MS = 10_000;
@@ -12,15 +13,7 @@ logger.info(`${config.appName}: scheduler.js запущен`);
 
 // scheduler
 function scheduleTask(name, interval, task) {
-    if (typeof name !== 'string' || !name) {
-        throw new TypeError('Аргумент "name" должен быть непустой строкой');
-    }
-    if (typeof interval !== 'number' || interval <= 0) {
-        throw new TypeError('Аргумент "interval" должен быть положительным числом');
-    }
-    if (typeof task !== 'function') {
-        throw new TypeError('Аргумент "task" должен быть функцией');
-    }
+    validateTaskParams(name, interval, task);
 
     logger.info(`Задача "${name}" зарегистрирована, интервал: ${interval} мс`);
 
