@@ -6,62 +6,106 @@
 
 ```
 src/
+├── app.js                  — Express-приложение (маршруты, middleware)
+├── server.js               — Точка входа HTTP-сервера
 ├── config/
-│   └── config.js          — конфигурация приложения (appName, env)
+│   └── config.js           — Конфигурация (appName, env)
 ├── errors/
-│   ├── AppError.js         — базовый класс ошибки (statusCode, timestamp, context)
-│   ├── ValidationError.js  — ошибка валидации аргументов (400)
-│   └── TaskExecutionError.js — ошибка выполнения задачи (500)
+│   ├── AppError.js         — Базовый класс ошибки (statusCode, timestamp)
+│   ├── ValidationError.js  — Ошибка валидации (400)
+│   └── TaskExecutionError.js — Ошибка выполнения задачи (500)
 ├── logger/
-│   └── logger.js           — логирование с уровнями error/warn/info/debug/trace и requestId
+│   └── logger.js           — createLogger({ requestId }), уровни error/warn/info/debug/trace
+├── middleware/
+│   └── auth.js             — Bearer-токен авторизация (401/403)
+├── routes/
+│   ├── currencies.js       — CRUD API для валют
+│   └── price.js            — Курсы из Binance API
+├── services/
+│   └── priceService.js     — Запросы к Binance + фильтрация
+├── store/
+│   └── currencyStore.js    — In-memory хранилище валют
 ├── scheduler/
-│   └── scheduler.js        — планировщик периодических задач
-└── utils/
-    └── validateTaskParams.js — валидация аргументов функции scheduleTask
-
-__tests__/
-└── app.test.js             — автотесты (Jest)
+│   └── scheduler.js        — Планировщик периодических задач
+├── utils/
+│   ├── validateTaskParams.js — Валидация аргументов scheduleTask
+│   └── fetchWithRetry.js   — Retry с экспоненциальной задержкой
+├── validators/
+│   └── binanceValidator.js — Валидация ответа Binance API
+docs/
+└── openapi.yaml            — OpenAPI 3.0 спецификация
+__tests__/                  — Все тесты (Jest + supertest)
 ```
 
 ## Задания
 
-### Git
+### Модуль 1 — Основы Node.js
 
-- Репозиторий создан на GitHub.
-- Проект инициализирован коммитом.
-- Каждый логический блок изменений оформлен отдельным атомарным коммитом с понятным сообщением.
+- **config.js** — `appName`, среда выполнения, флаг разработки.
+- **logger.js** — фабрика `createLogger({ requestId })`, формат: `[время] [УРОВЕНЬ] [appName] [requestId] сообщение`.
+- **errors/** — иерархия: `AppError` → `ValidationError` (400), `TaskExecutionError` (500).
+- **validateTaskParams.js** — валидация аргументов, вынесена из scheduler (SoC).
+- **scheduler.js** — функция `scheduleTask(name, interval, task)`, задача `heartbeat` каждые 10с.
 
-### NPM
+### Модуль 2, Задача 1 — HTTP-сервер на Express
 
-- Проект проинициализирован через `npm init`.
-- Jest установлен как devDependency.
+- Express-сервер с роутом `GET /status` → `"ok"` (health check).
+- Разделение `app.js` (маршруты) / `server.js` (запуск) для тестирования.
+- Тест через supertest: `request(app).get('/status')`.
 
-### Модули
+### Модуль 2, Задача 2 — Авторизация
 
-1. **config.js** — хранит `appName` и настройки проекта (среда выполнения, флаг разработки).
-2. **logger.js** — фабрика `createLogger({ requestId })`, возвращает логгер с методами `error`, `warn`, `info`, `debug`, `trace`. Формат: `[время] [УРОВЕНЬ] [appName] [requestId] сообщение`.
-3. **errors/** — кастомные классы ошибок, наследующие от `Error` через базовый `AppError`.
-4. **validateTaskParams.js** — вынесенная из scheduler валидация аргументов функции `scheduleTask`.
+- Middleware `auth.js` проверяет заголовок `Authorization: Bearer <token>`.
+- Нет заголовка → 401 Unauthorized, неверный токен → 403 Forbidden.
+- Токен хранится в `.env` (`AUTH_TOKEN`), загружается через `dotenv`.
+- `/status` остаётся публичным (объявлен до middleware).
 
-### Event Loop
+### Модуль 2, Задача 3 — CRUD API + OpenAPI
 
-1. **scheduler.js** — содержит:
-   - Инициализирующий скрипт, который синхронно логирует факт запуска.
-   - Функцию `scheduleTask(name, interval, task)` для управления периодическими задачами. Валидация аргументов вынесена в отдельный модуль (SoC).
-2. Зарегистрирована задача `heartbeat` — каждые 10 секунд логирует слово `running`.
+- CRUD endpoints для сущности `currency` (поля: `id`, `name`, `ticker`).
+- Хранение в памяти (`currencyStore.js`), при перезапуске данные удаляются.
+- Валидация: `name` и `ticker` обязательны (400), `id` проверяется на число (400).
+- Express Router — маршруты вынесены в `routes/currencies.js`.
+- OpenAPI 3.0 спецификация в `docs/openapi.yaml` — все endpoints, модели, security.
+
+| Метод | Путь | Описание | Статус |
+|-------|------|----------|--------|
+| GET | `/currencies` | Список валют | 200 |
+| GET | `/currencies/:id` | Получить по id | 200 / 400 / 404 |
+| POST | `/currencies` | Создать | 201 / 400 |
+| PUT | `/currencies/:id` | Обновить | 200 / 400 / 404 |
+| DELETE | `/currencies/:id` | Удалить | 204 / 400 / 404 |
+
+### Модуль 2, Задача 4 — Внешние API + валидация + retry
+
+- Эндпоинт `GET /price?currency=BTC` — проверяет ticker в хранилище, идёт в Binance API.
+- `fetchWithRetry.js` — retry с экспоненциальной задержкой (1с → 2с → ... → 64с макс), таймаут 5с через AbortController.
+- `binanceValidator.js` — валидация ответа Binance (массив, `symbol`/`price` — строки).
+- Ошибки Binance → 502 Bad Gateway, логируются через проектный `createLogger()`.
+- Тесты с partial mock: `fetchPrices` замокан, `filterByCurrency` — реальная.
 
 ## Установка и запуск
 
 ```bash
 npm install
-node src/scheduler/scheduler.js
+npm start                    # HTTP-сервер на порту 3000
+node src/scheduler/scheduler.js  # Планировщик задач
 ```
 
 ## Тесты
 
 ```bash
-npm test
+npm test                     # Все тесты
+npx jest -t "pattern"        # Один тест по имени
 ```
+
+## Переменные окружения
+
+| Переменная | Описание | Где |
+|------------|----------|-----|
+| `AUTH_TOKEN` | Bearer-токен для авторизации (64-значный хэш) | `.env` |
+| `PORT` | Порт HTTP-сервера (по умолчанию 3000) | env |
+| `NODE_ENV` | Среда выполнения (development/production) | env |
 
 ## Автор
 
