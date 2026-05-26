@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const authMiddleware = require('./middleware/auth');
 const currenciesRouter = require('./routes/currencies');
+const priceRouter = require('./routes/price');
 
 const app = express();
 
@@ -13,5 +14,6 @@ app.get('/status', (req, res) => {
 
 app.use(authMiddleware);
 app.use('/currencies', currenciesRouter);
+app.use('/price', priceRouter);
 
 module.exports = app;
