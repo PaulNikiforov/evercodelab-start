@@ -1,22 +1,22 @@
+const fetchWithRetry = require('../utils/fetchWithRetry');
+const { isValidPriceResponse } = require('../validators/binanceValidator');
+
 const BINANCE_API_URL = 'https://api.binance.com/api/v3/ticker/price';
-const BINANCE_TIMEOUT_MS = 5000;
 
 async function fetchPrices() {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), BINANCE_TIMEOUT_MS);
-    try {
-        const response = await fetch(BINANCE_API_URL, { signal: controller.signal });
-        if (!response.ok) {
-            throw new Error(`Binance API error: ${response.status}`);
-        }
-        const data = await response.json();
-        if (!Array.isArray(data)) {
-            throw new Error('Некорректный формат ответа Binance');
-        }
-        return data;
-    } finally {
-        clearTimeout(timeout);
+    const response = await fetchWithRetry(BINANCE_API_URL, {
+        baseDelayMs: 1000,
+        maxDelayMs: 64000,
+        timeoutMs: 5000,
+    });
+
+    const data = await response.json();
+
+    if (!isValidPriceResponse(data)) {
+        throw new Error('Некорректный формат ответа Binance');
     }
+
+    return data;
 }
 
 function filterByCurrency(prices, ticker) {

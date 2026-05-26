@@ -90,4 +90,16 @@ describe('GET /price', () => {
 
         expect(res.statusCode).toBe(502);
     });
+
+    it('возвращает 502 при некорректном формате ответа', async () => {
+        priceService.fetchPrices.mockRejectedValue(
+            new Error('Некорректный формат ответа Binance')
+        );
+
+        const res = await request(app)
+            .get('/price?currency=BTC')
+            .set(auth());
+
+        expect(res.statusCode).toBe(502);
+    });
 });
