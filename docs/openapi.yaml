@@ -1,0 +1,307 @@
+openapi: 3.0.3
+info:
+  title: EverCodeLab API
+  description: API для учебного проекта EverCodeLab
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Локальный сервер
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Токен из переменной окружения AUTH_TOKEN
+
+  schemas:
+    Currency:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Bitcoin
+        ticker:
+          type: string
+          example: BTC
+      required:
+        - id
+        - name
+        - ticker
+
+    CurrencyInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Bitcoin
+        ticker:
+          type: string
+          example: BTC
+      required:
+        - name
+        - ticker
+
+    PriceEntry:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: BTCUSDT
+        price:
+          type: string
+          example: "43000.000000"
+      required:
+        - symbol
+        - price
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Валюта не найдена
+
+paths:
+  /status:
+    get:
+      summary: Health check
+      description: Публичный эндпоинт для мониторинга. Возвращает "ok" если сервер работает.
+      operationId: getStatus
+      responses:
+        "200":
+          description: Сервер работает
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+
+  /currencies:
+    get:
+      summary: Список валют
+      description: Возвращает все сохранённые валюты.
+      operationId: getCurrencies
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Массив валют
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Currency"
+        "401":
+          description: Отсутствует заголовок Authorization
+        "403":
+          description: Неверный токен
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Forbidden
+
+    post:
+      summary: Создать валюту
+      description: Создаёт новую валюту. id генерируется автоматически.
+      operationId: createCurrency
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrencyInput"
+      responses:
+        "201":
+          description: Валюта создана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Currency"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Отсутствует заголовок Authorization
+        "403":
+          description: Неверный токен
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Forbidden
+
+  /currencies/{id}:
+    get:
+      summary: Получить валюту по id
+      operationId: getCurrencyById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Валюта найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Currency"
+        "401":
+          description: Отсутствует заголовок Authorization
+        "403":
+          description: Неверный токен
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Forbidden
+        "404":
+          description: Валюта не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      summary: Обновить валюту
+      operationId: updateCurrency
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrencyInput"
+      responses:
+        "200":
+          description: Валюта обновлена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Currency"
+        "400":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Отсутствует заголовок Authorization
+        "403":
+          description: Неверный токен
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Forbidden
+        "404":
+          description: Валюта не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /price:
+    get:
+      summary: Курсы валюты
+      description: Возвращает все торговые пары с заданным ticker из Binance API. Ticker должен существовать в хранилище.
+      operationId: getPrice
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: currency
+          in: query
+          required: true
+          description: Ticker валюты (должен быть в хранилище)
+          schema:
+            type: string
+          example: BTC
+      responses:
+        "200":
+          description: Массив торговых пар
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PriceEntry"
+        "400":
+          description: Отсутствует параметр currency
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Отсутствует заголовок Authorization
+        "403":
+          description: Неверный токен
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Forbidden
+        "404":
+          description: Валюта не найдена в хранилище
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Ошибка при обращении к Binance API
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /currencies/{id}:
+    delete:
+      summary: Удалить валюту
+      operationId: deleteCurrency
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Валюта удалена
+        "401":
+          description: Отсутствует заголовок Authorization
+        "403":
+          description: Неверный токен
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Forbidden
+        "404":
+          description: Валюта не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
