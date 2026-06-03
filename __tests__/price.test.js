@@ -1,5 +1,19 @@
 process.env.AUTH_TOKEN = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2';
 
+jest.mock('../src/db/database', () => {
+    const Database = require('better-sqlite3');
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS currencies (
+            id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            name   TEXT NOT NULL,
+            ticker TEXT NOT NULL UNIQUE
+        )
+    `);
+    return { getDb: () => db, closeDb: () => {} };
+});
+
 jest.mock('../src/services/priceService', () => {
     const actual = jest.requireActual('../src/services/priceService');
     return {
@@ -10,7 +24,7 @@ jest.mock('../src/services/priceService', () => {
 
 const request = require('supertest');
 const app = require('../src/app');
-const store = require('../src/store/currencyStore');
+const store = require('../src/store/currencyRepository');
 const priceService = require('../src/services/priceService');
 
 const TOKEN = process.env.AUTH_TOKEN;
