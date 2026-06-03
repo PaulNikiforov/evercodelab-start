@@ -34,10 +34,7 @@ router.post('/', (req, res) => {
         const currency = store.create(req.body);
         res.status(201).json(currency);
     } catch (error) {
-        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-            return res.status(409).json({ error: 'Валюта с таким ticker уже существует' });
-        }
-        throw error;
+        return res.status(error.statusCode || 500).json({ error: error.message });
     }
 });
 
@@ -54,10 +51,7 @@ router.put('/:id', (req, res) => {
         if (!currency) return res.status(404).json({ error: 'Валюта не найдена' });
         res.json(currency);
     } catch (error) {
-        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-            return res.status(409).json({ error: 'Валюта с таким ticker уже существует' });
-        }
-        throw error;
+        return res.status(error.statusCode || 500).json({ error: error.message });
     }
 });
 

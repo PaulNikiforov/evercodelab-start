@@ -1,5 +1,19 @@
 process.env.AUTH_TOKEN = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2';
 
+jest.mock('../src/db/database', () => {
+    const Database = require('better-sqlite3');
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS currencies (
+            id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            name   TEXT NOT NULL,
+            ticker TEXT NOT NULL UNIQUE
+        )
+    `);
+    return { getDb: () => db, closeDb: () => {} };
+});
+
 const request = require('supertest');
 const app = require('../src/app');
 const store = require('../src/store/currencyRepository');
@@ -118,5 +132,32 @@ describe('DELETE /currencies/:id', () => {
             .set(auth());
 
         expect(res.statusCode).toBe(404);
+    });
+});
+
+describe('UNIQUE constraint', () => {
+    it('POST /currencies с дублирующимся ticker возвращает 400', async () => {
+        store.create({ name: 'Bitcoin', ticker: 'BTC' });
+
+        const res = await request(app)
+            .post('/currencies')
+            .set(auth())
+            .send({ name: 'Bitcoin 2', ticker: 'BTC' });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toContain('уже существует');
+    });
+
+    it('PUT /currencies/:id с ticker другой валюты возвращает 400', async () => {
+        store.create({ name: 'Bitcoin', ticker: 'BTC' });
+        store.create({ name: 'Ethereum', ticker: 'ETH' });
+
+        const res = await request(app)
+            .put('/currencies/2')
+            .set(auth())
+            .send({ name: 'Ethereum', ticker: 'BTC' });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toContain('уже существует');
     });
 });

@@ -28,4 +28,4 @@ function initDb() {
     closeDb();
 }
 
-initDb();
+module.exports = { initDb };
