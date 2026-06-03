@@ -2,7 +2,7 @@ process.env.AUTH_TOKEN = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7
 
 const request = require('supertest');
 const app = require('../src/app');
-const store = require('../src/store/currencyStore');
+const store = require('../src/store/currencyRepository');
 
 const TOKEN = process.env.AUTH_TOKEN;
 const auth = () => ({ Authorization: `Bearer ${TOKEN}` });

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const createLogger = require('../logger/logger');
-const store = require('../store/currencyStore');
+const store = require('../store/currencyRepository');
 const priceService = require('../services/priceService');
 
 const logger = createLogger();

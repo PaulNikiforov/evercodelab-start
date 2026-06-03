@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const store = require('../store/currencyStore');
+const store = require('../store/currencyRepository');
 const ValidationError = require('../errors/ValidationError');
 
 function validateCurrency({ name, ticker }) {
@@ -30,8 +30,15 @@ router.post('/', (req, res) => {
     } catch (error) {
         return res.status(error.statusCode || 400).json({ error: error.message });
     }
-    const currency = store.create(req.body);
-    res.status(201).json(currency);
+    try {
+        const currency = store.create(req.body);
+        res.status(201).json(currency);
+    } catch (error) {
+        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            return res.status(409).json({ error: 'Валюта с таким ticker уже существует' });
+        }
+        throw error;
+    }
 });
 
 router.put('/:id', (req, res) => {
@@ -42,9 +49,16 @@ router.put('/:id', (req, res) => {
     } catch (error) {
         return res.status(error.statusCode || 400).json({ error: error.message });
     }
-    const currency = store.update(id, req.body);
-    if (!currency) return res.status(404).json({ error: 'Валюта не найдена' });
-    res.json(currency);
+    try {
+        const currency = store.update(id, req.body);
+        if (!currency) return res.status(404).json({ error: 'Валюта не найдена' });
+        res.json(currency);
+    } catch (error) {
+        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            return res.status(409).json({ error: 'Валюта с таким ticker уже существует' });
+        }
+        throw error;
+    }
 });
 
 router.delete('/:id', (req, res) => {

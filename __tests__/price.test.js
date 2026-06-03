@@ -10,7 +10,7 @@ jest.mock('../src/services/priceService', () => {
 
 const request = require('supertest');
 const app = require('../src/app');
-const store = require('../src/store/currencyStore');
+const store = require('../src/store/currencyRepository');
 const priceService = require('../src/services/priceService');
 
 const TOKEN = process.env.AUTH_TOKEN;

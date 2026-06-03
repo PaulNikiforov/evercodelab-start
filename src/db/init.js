@@ -15,7 +15,13 @@ function initDb() {
             name      TEXT    NOT NULL,
             executed_at TEXT  NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
             status    TEXT    NOT NULL DEFAULT 'success'
-        )
+        );
+
+        CREATE TABLE IF NOT EXISTS currencies (
+            id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            name   TEXT NOT NULL,
+            ticker TEXT NOT NULL UNIQUE
+        );
     `);
 
     logger.info('База данных успешно инициализирована: ' + config.dbPath);
