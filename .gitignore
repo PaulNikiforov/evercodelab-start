@@ -8,5 +8,8 @@ node_modules/
 !Readme.md
 
 plans/
+data/
+*.db
+*.db-journal
 .DS_Store
 Thumbs.db
